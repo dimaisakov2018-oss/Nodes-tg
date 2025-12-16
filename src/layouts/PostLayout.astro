@@ -1,0 +1,137 @@
+---
+const { title, description, lang, date, otherPosts = [], altLangUrl } = Astro.props;
+const fmt = (d) => {
+  try { return new Intl.DateTimeFormat(lang === 'ru' ? 'ru-RU' : 'en-US', { year:'numeric', month:'long', day:'numeric'}).format(new Date(d)); }
+  catch { return d; }
+};
+---
+<html lang={lang}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>{title}</title>
+    {description ? <meta name="description" content={description} /> : null}
+    <style is:global>
+      @import "/src/styles/global.css";
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header class="topbar">
+        <a class="brand" href={`/${lang}`}>
+          <span class="dot" aria-hidden="true"></span>
+          <span>Blog</span>
+        </a>
+
+        <nav class="nav">
+          <div class="lang" title="Language">
+            <span class="small">{lang.toUpperCase()}</span>
+            <select id="langSel" aria-label="Language">
+              <option value="ru" selected={lang === 'ru'}>RU</option>
+              <option value="en" selected={lang === 'en'}>EN</option>
+            </select>
+          </div>
+        </nav>
+      </header>
+
+      <main>
+        <article class="post">
+          <h1>{title}</h1>
+          {altLangUrl ? (
+            <p class="small" style="margin: 0 0 12px;">
+              <a href={altLangUrl}>
+                {lang === 'ru' ? 'Read in English' : 'Читать на русском'}
+              </a>
+            </p>
+          ) : null}
+
+          <slot />
+
+          <footer class="meta">
+            <div class="who">
+              <div>{fmt(date)}</div>
+              <div>{lang === 'ru' ? 'Команда Telegram' : 'The Telegram Team'}</div>
+            </div>
+            <div class="share">
+              <a class="btn" href="#" onclick="navigator.clipboard.writeText(location.href); this.textContent='{lang === 'ru' ? 'Скопировано' : 'Copied'}'; return false;">
+                {lang === 'ru' ? 'Forward' : 'Forward'}
+              </a>
+              <a class="btn secondary" target="_blank" rel="noreferrer" href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(Astro.site ? new URL(Astro.url.pathname, Astro.site).toString() : Astro.url.toString())}&text=${encodeURIComponent(title)}`}>
+                Tweet
+              </a>
+            </div>
+          </footer>
+
+          {otherPosts?.length ? (
+            <>
+              <div class="section-title">{lang === 'ru' ? 'Другие новости' : 'Other News'}</div>
+              <div class="cards">
+                {otherPosts.map(p => (
+                  <a class="card" href={p.url}>
+                    <div class="t">{p.data.title}</div>
+                    <p class="d">{p.data.description ?? ''}</p>
+                  </a>
+                ))}
+              </div>
+            </>
+          ) : null}
+        </article>
+      </main>
+    </div>
+
+    <script>
+      const sel = document.getElementById('langSel');
+      if (sel) {
+        sel.addEventListener('change', (e) => {
+          const v = e.target.value;
+          const path = location.pathname;
+          // if already /ru/... or /en/... swap first segment
+          const parts = path.split('/').filter(Boolean);
+          if (parts.length && (parts[0] === 'ru' || parts[0] === 'en')) {
+            parts[0] = v;
+            location.pathname = '/' + parts.join('/');
+          } else {
+            location.pathname = '/' + v + path;
+          }
+        });
+      }
+    </script>
+  
+<script>
+  // Reveal media blocks as you scroll (lightweight, no dependencies)
+  const els = document.querySelectorAll('.reveal');
+  if ('IntersectionObserver' in window) {
+    const io = new IntersectionObserver((entries) => {
+      for (const e of entries) {
+        if (e.isIntersecting) {
+          e.target.classList.add('is-visible');
+          io.unobserve(e.target);
+        }
+      }
+    }, { threshold: 0.12 });
+    els.forEach(el => io.observe(el));
+  } else {
+    // Fallback: show everything
+    els.forEach(el => el.classList.add('is-visible'));
+  }
+</script>
+  
+<script>
+  // Play videos only while they are visible (Telegram-like demos)
+  const vids = document.querySelectorAll('video[data-autoplay]');
+  if ('IntersectionObserver' in window) {
+    const io = new IntersectionObserver((entries) => {
+      for (const e of entries) {
+        const v = e.target;
+        if (e.isIntersecting) {
+          v.play().catch(() => {});
+        } else {
+          v.pause();
+        }
+      }
+    }, { threshold: 0.6 });
+    vids.forEach(v => io.observe(v));
+  }
+</script>
+  </body>
+</html>

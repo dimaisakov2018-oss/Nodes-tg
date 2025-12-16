@@ -1,0 +1,71 @@
+---
+import { getCollection } from 'astro:content';
+
+export async function getStaticPaths() {
+  return [
+    { params: { lang: 'ru' } },
+    { params: { lang: 'en' } },
+  ];
+}
+
+const { lang } = Astro.params;
+const safeLang = (lang === 'ru' || lang === 'en') ? lang : 'ru';
+
+const posts = await getCollection(safeLang, ({ data }) => data.draft !== true);
+posts.sort((a, b) => new Date(b.data.date).getTime() - new Date(a.data.date).getTime());
+---
+<html lang={safeLang}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>{safeLang === 'ru' ? 'Блог' : 'Blog'}</title>
+    <style is:global>
+      @import "/src/styles/global.css";
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header class="topbar">
+        <a class="brand" href={`/${safeLang}`}>
+          <span class="dot" aria-hidden="true"></span>
+          <span>{safeLang === 'ru' ? 'Блог' : 'Blog'}</span>
+        </a>
+        <div class="lang">
+          <span class="small">{safeLang.toUpperCase()}</span>
+          <select id="langSel" aria-label="Language">
+            <option value="ru" selected={safeLang === 'ru'}>RU</option>
+            <option value="en" selected={safeLang === 'en'}>EN</option>
+          </select>
+        </div>
+      </header>
+
+      <main>
+        <h1 style="margin-bottom: 14px;">{safeLang === 'ru' ? 'Последние новости' : 'Latest News'}</h1>
+        <p class="lead" style="margin-top:0;">
+          {safeLang === 'ru'
+            ? 'Короткие, понятные обновления — как в Telegram.'
+            : 'Short, clear updates — Telegram-style.'}
+        </p>
+
+        <div class="cards">
+          {posts.map((p) => (
+            <a class="card" href={`/${safeLang}/blog/${p.slug}`}>
+              <div class="t">{p.data.title}</div>
+              <p class="d">{p.data.description ?? ''}</p>
+            </a>
+          ))}
+        </div>
+      </main>
+    </div>
+
+    <script>
+      const sel = document.getElementById('langSel');
+      if (sel) {
+        sel.addEventListener('change', (e) => {
+          const v = e.target.value;
+          location.pathname = '/' + v;
+        });
+      }
+    </script>
+  </body>
+</html>

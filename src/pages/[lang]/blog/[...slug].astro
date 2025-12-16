@@ -1,0 +1,43 @@
+---
+import PostLayout from '../../../layouts/PostLayout.astro';
+import { getCollection } from 'astro:content';
+
+export async function getStaticPaths() {
+  const ru = await getCollection('ru');
+  const en = await getCollection('en');
+
+  const paths = [];
+  for (const p of ru) paths.push({ params: { lang: 'ru', slug: p.slug }});
+  for (const p of en) paths.push({ params: { lang: 'en', slug: p.slug }});
+  return paths;
+}
+
+const { lang, slug } = Astro.params;
+const allowed = lang === 'ru' || lang === 'en';
+if (!allowed) return Astro.redirect('/ru');
+
+const all = await getCollection(lang);
+const entry = all.find(p => p.slug === slug);
+if (!entry) return Astro.redirect(`/${lang}`);
+
+const other = (await getCollection(lang))
+  .filter(p => p.slug !== slug)
+  .sort((a,b) => new Date(b.data.date).getTime() - new Date(a.data.date).getTime())
+  .slice(0, 4);
+
+const altLang = lang === 'ru' ? 'en' : 'ru';
+const altExists = (await getCollection(altLang)).some(p => p.slug === slug);
+const altLangUrl = altExists ? `/${altLang}/blog/${slug}` : null;
+
+const { Content } = await entry.render();
+---
+<PostLayout
+  title={entry.data.title}
+  description={entry.data.description}
+  lang={lang}
+  date={entry.data.date}
+  otherPosts={other.map(p => ({ ...p, url: `/${lang}/blog/${p.slug}` }))}
+  altLangUrl={altLangUrl}
+>
+  <Content />
+</PostLayout>
